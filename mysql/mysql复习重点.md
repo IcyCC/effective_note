@@ -1,5 +1,7 @@
 # Mysql 复习重点
 
+> 以下内容来自极客时间
+
 ## 01 架构
 
 组成可分为:
@@ -89,4 +91,150 @@
 ```
 select * from information_schema.innodb_trx where TIME_TO_SEC(timediff(now(),trx_started))>60
 ```
+
+### 避免长事务
+
+1. 使用 autocommit = 1
+2. SET MAX_EXECUTEION_TIME 控制最长执行时间
+3. 监控 informatino_schema.innodb_trx 表
+
+## 索引
+
+innodb B+ 索引
+
+### 主键索引(聚集索引) 和 普通索引(二级索引)
+
+主键索引只查一次
+
+普通索引先查到主键 再 回表 查主键索引
+
+### 自增
+
+在有序插入的前提下 不引起树的分裂 效率更高
+
+> KV 场景可以不使用自增主键
+
+## 常用索引的优化手段
+
+### 覆盖索引
+
+索引字段 覆盖了 查询索引 不需要回表
+
+### 最左前缀原则
+
+联合索引最左
+字符串索引前几个字符
+
+调整顺序维护索引
+
+### 索引下推
+
+5.6 以后版本
+(name, age)
+
+```
+select * from people where name like '张%' and age = 10 and ismale =1
+```
+
+只能用 name 的索引 然后下推到 age 减少回表
+
+> 使用 Alter table T engine=InnoDB 重建索引提高效率
+
+## 锁
+
+大致分为 全局锁, 表级锁, 行锁
+
+### 全局锁
+
+```
+FLUSH tables with lock (FTWRL)
+```
+
+整个库只处于只读状态 一般用于备份
+
+用 可重复读事务隔离级别 替代
+
+```
+mysqldump -single-transaction
+
+```
+
+不使用
+
+```
+set gloabal readonly = true
+
+```
+
+1. 可能影响 主从判断
+2. 异常处理有问题
+
+### 表锁
+
+```
+lock tables rad/write
+
+unlokc tables
+```
+
+#### MDL(metadata lock)
+
+对表做增删改时 加 mdl 读锁
+对表结构变动时 加 mdl 写锁
+
+读写 和 写之间互斥
+
+給表加字段索引 会扫描全表
+
+> 注意
+> 对表结构做变更 可能导致会话拿不到读锁 卡死 客户端超时打爆数据库
+
+解决方法
+
+```
+ALTER TABLE xxx WAIT N add colum
+ALTER TABLE xxx NOWAIT add colum
+```
+
+### 行锁
+
+这个过程中
+![例子](../assests/02.png)
+事务A 执行完commit 之前 事务B会被阻塞 直到A commit
+
+> 如果事务中 需要锁多个行 把最可能造成冲突的语句往后放
+
+例子:
+ 
+ 影院系统:
+    1. 顾客A账户扣除票价
+    2. 影院B增加票价
+    3. 记录日志
+
+正确顺序 3 1 2 (影院B的记录要多次更新)
+
+### 死锁 和 死锁检测
+
+![例子](../assests/03.png)
+
+A 等B 释放 2号行锁 
+B 等A 释放 1号行锁
+
+> 解决方案
+
+1. innodb_lock_wait_timeout 设置锁超时 有可能误伤
+2. innodb_deadlock_detect on 死锁检测 O(n) 消耗大量cpu资源
+无法解决 热点行更新问题
+
+> 热点行更新
+1. 中间件 相同行更新排队 控制并发数量
+2. 更新行分散 吧账户余额 分散到十行
+
+
+
+
+
+
+
+
 
