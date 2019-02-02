@@ -268,4 +268,61 @@ B 等 A  释放 1 号行锁
 
 在 读提交的级别下 每次执行都创建视图
 
+## 唯一索引 和 普通索引
 
+ innodb数据页大小16k 所以查询性能区别微乎其微
+
+ ### change buffer
+
+ 更新一个数据的时候 如果数据页在内存中 直接更新, 如果不在内存中 先写入change buffer, 下次查询访问该数据页时, 讲数据页读入内存. 执行change buffer 的操作
+
+ 讲change buffer 应用到原数据页的操作 称为merge 
+
+ 以下情况会触发merge:
+1. 访问原数据页
+2. 定期merge
+3. 数据库关闭
+
+使用change buffer的情况:
+1. 唯一索引因为要判断重复 所以必须读数据页 不能使用change buffer
+2. 普通索引可以
+
+change buffer使用 的是buffer pool的内存
+通过
+```
+innodb_change_buffer_max_size 
+```
+设置change buffer占用buffer pool 的百分比
+
+所以 唯一索引会影响**插入和更新**性能
+
+#### 适用场景
+
+change buffer 适用于写多读少的业务. 写入完了被马上访问的概率小(常见 日志 账单)
+
+反过来 写完立刻读 change buffer会起到副作用
+
+所以 一般情况 尽量使用普通索引, 如果更新完了立刻查 要关闭change buffer,
+如果历史数据之类的东西 尽量开大机械硬盘
+
+### 更新流程分析
+
+```
+mysql> insert into t(id,k) values(id1,k1),(id2,k2);
+
+```
+
+![例子](../assests/05.png)
+
+1. 对于 page1(id1)的插入 page1再 buffer pool 直接插入
+2. 对于 page2(id2)的插入 不在内存中 直接写入change buffer
+3. 记录redo log
+
+完成并且响应 然后后台更新 page1 和 change buffer
+
+redo log 节约了随机写磁盘的消耗 转换成顺序写
+change buffer 节约了随机读
+
+注意 change buffer 会记录所有的真实的物理数据页写入  
+redo log会记录所有写入操作 有的写入到change buffer 有的 写入到物理页,
+所以redo log commit 的时候 和 change buffer不会冲突
