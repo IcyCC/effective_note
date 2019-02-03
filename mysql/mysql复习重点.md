@@ -398,18 +398,48 @@ from SUser;
 
 > 前缀索引会造成覆盖索引失效
 
-2. 倒叙存储
+2.  倒叙存储
 
 用于身份证号 前缀相同 后缀不一样
+
 ```
 mysql> select field_list from t where id_card = reverse('input_id_card_string');
 
 ```
 
-3. hash字段
+3. hash 字段
 
 ```
 mysql> select field_list from t where id_card_crc=crc32('input_id_card_string') and id_card='input_id_card_string'
 
 ```
 
+## mysql 查询抖动
+
+> 脏页 内存和磁盘数据不一致的页
+
+可能是因为 redo log 刷脏页 (flush)造成的抖动 可能发生在如下情况:
+
+1. redo log 写满
+2. 调用新的页内存不足 淘汰的页面如果是脏页 要 flush
+3. 系统空闲刷新
+4. 关闭时刷新
+
+情况 1 会阻塞住更新 更新会跌倒 0
+
+### 解决方案
+
+1. 正确设置 **innodb_io_capacity** 告诉 mysql 磁盘 io 能力 可通过
+   进行测试 如果 ssd 系统 默认值很小
+
+```
+ fio -filename=$filename -direct=1 -iodepth 1 -thread -rw=randrw -ioengine=psync -bs=16k -size=500M -numjobs=10 -runtime=10 -group_reporting -name=mytest
+```
+
+2. 控制全力刷脏页的速度(innodb_io_capacity \* R%) 这个参数由俩个部分组成:
+
+   1. 脏页比例 可以通过 innodb_max_dirty_pages_pct 脏页比例上限
+   1. redo log 写入速度
+
+3. innodb_flush_neighbors 如果  被 flush 页邻居也是脏页 要不要连坐邻居,
+   ssd 不建议开启 hd 开启
