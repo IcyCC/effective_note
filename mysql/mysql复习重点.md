@@ -268,31 +268,35 @@ B 等 A  释放 1 号行锁
 
 在 读提交的级别下 每次执行都创建视图
 
-## 唯一索引 和 普通索引
+## 唯一  索引 和 普通索引
 
- innodb数据页大小16k 所以查询性能区别微乎其微
+innodb 数据页大小 16k 所以查询性能区别微乎其微
 
- ### change buffer
+### change buffer
 
- 更新一个数据的时候 如果数据页在内存中 直接更新, 如果不在内存中 先写入change buffer, 下次查询访问该数据页时, 讲数据页读入内存. 执行change buffer 的操作
+更新一个数据的时候 如果数据页在内存中 直接更新, 如果不在内存中 先写入 change buffer, 下次查询访问该数据页时, 讲数据页读入内存. 执行 change buffer 的操作
 
- 讲change buffer 应用到原数据页的操作 称为merge 
+讲 change buffer 应用到原数据页的操作 称为 merge
 
- 以下情况会触发merge:
+以下情况会触发 merge:
+
 1. 访问原数据页
-2. 定期merge
+2. 定期 merge
 3. 数据库关闭
 
-使用change buffer的情况:
-1. 唯一索引因为要判断重复 所以必须读数据页 不能使用change buffer
+使用 change buffer 的情况:
+
+1. 唯一索引因为要判断重复 所以必须读数据页 不能使用 change buffer
 2. 普通索引可以
 
-change buffer使用 的是buffer pool的内存
+change buffer 使用 的是 buffer pool 的内存
 通过
+
 ```
-innodb_change_buffer_max_size 
+innodb_change_buffer_max_size
 ```
-设置change buffer占用buffer pool 的百分比
+
+设置 change buffer 占用 buffer pool 的百分比
 
 所以 唯一索引会影响**插入和更新**性能
 
@@ -300,9 +304,9 @@ innodb_change_buffer_max_size
 
 change buffer 适用于写多读少的业务. 写入完了被马上访问的概率小(常见 日志 账单)
 
-反过来 写完立刻读 change buffer会起到副作用
+反过来  写完立刻读 change buffer 会起到副作用
 
-所以 一般情况 尽量使用普通索引, 如果更新完了立刻查 要关闭change buffer,
+所以 一般情况 尽量使用普通索引, 如果更新完了立刻查 要关闭 change buffer,
 如果历史数据之类的东西 尽量开大机械硬盘
 
 ### 更新流程分析
@@ -314,15 +318,98 @@ mysql> insert into t(id,k) values(id1,k1),(id2,k2);
 
 ![例子](../assests/05.png)
 
-1. 对于 page1(id1)的插入 page1再 buffer pool 直接插入
-2. 对于 page2(id2)的插入 不在内存中 直接写入change buffer
-3. 记录redo log
+1. 对于 page1(id1)的插入 page1 再 buffer pool 直接插入
+2. 对于 page2(id2)的插入 不在内存中 直接写入 change buffer
+3. 记录 redo log
 
 完成并且响应 然后后台更新 page1 和 change buffer
 
-redo log 节约了随机写磁盘的消耗 转换成顺序写
+redo log 节约了随机写磁盘的消耗  转换成顺序写
 change buffer 节约了随机读
 
 注意 change buffer 会记录所有的真实的物理数据页写入  
-redo log会记录所有写入操作 有的写入到change buffer 有的 写入到物理页,
-所以redo log commit 的时候 和 change buffer不会冲突
+redo log 会记录所有写入操作 有的写入到 change buffer 有的 写入到物理页,
+所以 redo log commit 的时候 和 change buffer 不会冲突
+
+## 选错索引
+
+选择索引是优化器的工作
+
+优化的目的是扫描行数
+
+mysql 执行前不知道真实的扫描, 只能根据统计信息来估算 
+这个统计信息称为区分度 一个索引上不同值越多 区分度越大.
+一个索引不同值的数量 称为基数 cardinality
+通过
+
+```
+show index from t
+```
+
+查看
+
+![例子](../assests/06.png)
+
+注意 cardinality 不并不准确 通过采样统计 选择 N 个数据页 求平均值,
+当更新行数 超过 1/M 会更新统计
+
+通过 mysql _innodb_stats_persistent_ 可以设置 统计信息的存储方式  
+on 时 会持久化 off 只在内存中
+
+使用索引 要进行回表 优化器计算的时候 会把回表的代价算进去
+
+使用以下命令 可以重新统计值
+
+```
+analyze table t;
+
+```
+
+### 案例分析
+
+```
+mysql> select * from t where (a between 1 and 1000)  and (b between 50000 and 100000) order by b limit 1;
+
+```
+
+这个语句应该用 a 索引 但是优化器选择了 b 索引 原因是优化器认为使用 b 可以避免排序
+
+解决方案:
+
+1. forceidnex
+2. 修改语句 order by b,a
+3. 删除 b 索引
+
+## 字符串索引
+
+1. 前缀索引
+
+```
+mysql> select
+  count(distinct left(email,4)）as L4,
+  count(distinct left(email,5)）as L5,
+  count(distinct left(email,6)）as L6,
+  count(distinct left(email,7)）as L7,
+from SUser;
+
+```
+
+比对个长度前缀区分度
+
+> 前缀索引会造成覆盖索引失效
+
+2. 倒叙存储
+
+用于身份证号 前缀相同 后缀不一样
+```
+mysql> select field_list from t where id_card = reverse('input_id_card_string');
+
+```
+
+3. hash字段
+
+```
+mysql> select field_list from t where id_card_crc=crc32('input_id_card_string') and id_card='input_id_card_string'
+
+```
+
