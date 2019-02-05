@@ -443,3 +443,98 @@ mysql> select field_list from t where id_card_crc=crc32('input_id_card_string') 
 
 3. innodb_flush_neighbors 如果  被 flush 页邻居也是脏页 要不要连坐邻居,
    ssd 不建议开启 hd 开启
+
+## 表内存空间
+
+通过设置 innodb_file_per_table 的参数, 可以设置爱数据文件在系统空间还是.idb 文件
+
+如果开启 通过 drop table 可以删除整个文件 释放内存
+
+delete 是软删除 把数据页和记录位置标记为可复用
+
+通过
+
+可以重建表
+
+```
+alter table A engine = innodb
+```
+
+可以重建 并且 优化统计信息
+
+```
+optimize table t
+```
+
+## Count(\*) 相关
+
+为了保证多版本并发控制 mysql 不能直接存一个行数
+
+所以 count(\*) 比较慢
+
+count(\*) 和 count(1) 效率最高
+
+可以加个数据数表 记录每一个表的数据数量 通过事务控制一致
+
+## order by 原理
+
+核心机制是 sort_buffer  分配的单位是线程
+
+### 全字段排序
+
+比如执行
+
+```
+select city,name,age from t where city='杭州' order by name limit 1000  ;
+
+```
+
+sort_buffer 就是 city, name, age,
+先把值放入 sort_buffer 然后对 name 做一次快速排序,
+然后直接返回
+
+通过 sort_buffer_size 这个参数 可以对内存中 sort_buffer 做限制 大于这个值会放在硬盘上的临时文件
+
+通过 optimizer_trace 设置 开启本线程的优化
+
+```
+/* 打开 optimizer_trace，只对本线程有效 */
+SET optimizer_trace='enabled=on';
+
+/* @a 保存 Innodb_rows_read 的初始值 */
+select VARIABLE_VALUE into @a from  performance_schema.session_status where variable_name = 'Innodb_rows_read';
+
+/* 执行语句 */
+select city, name,age from t where city='杭州' order by name limit 1000;
+
+/* 查看 OPTIMIZER_TRACE 输出 */
+SELECT * FROM `information_schema`.`OPTIMIZER_TRACE`\G
+
+/* @b 保存 Innodb_rows_read 的当前值 */
+select VARIABLE_VALUE into @b from performance_schema.session_status where variable_name = 'Innodb_rows_read';
+
+/* 计算 Innodb_rows_read 差值 */
+select @b-@a;
+
+```
+
+通过 number_of_tmp_files 来查看临时文件使用数量
+
+通过修改该参数设置  排序字段大于该参数值 就更换 row_id 排序算法
+
+```
+
+SET max_length_for_sort_data = 16;
+
+```
+
+### row_id 算法
+
+为了让 sort_buffer 更节省内存.
+
+只把 查完主表 id name 放入 sort_buffer 排序完了通过 id 从原表中取出要的数据返回  
+要多查一次主表
+
+### 覆盖索引优化
+
+可以通过覆盖索引 进行优化
