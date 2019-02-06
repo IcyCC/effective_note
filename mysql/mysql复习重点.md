@@ -538,3 +538,56 @@ SET max_length_for_sort_data = 16;
 ### 覆盖索引优化
 
 可以通过覆盖索引 进行优化
+
+## 慢查询  分析
+
+### 字段函数造成的慢查询
+
+#### 使用字段函数
+
+```
+mysql> select count(*) from tradelog where month(t_modified)=7;
+
+```
+
+#### 隐式类型转换
+
+> 前提 字符串和数字比较 字符串转成数字
+
+```
+mysql> select * from tradelog where tradeid=110717;
+
+```
+
+会转换成
+
+```
+mysql> select * from tradelog where  CAST(tradid AS signed int) = 110717;
+```
+
+#### 隐式编码转换
+
+> 略
+
+对字段做函数会破坏索引
+
+### 慢查询 锁
+
+通过
+
+```
+show processlis
+```
+
+查看当前执行状态
+
+#### mdl 锁
+
+#### 等 flush
+
+#### 等行锁
+
+#### 多次修改事务的不提交
+
+查 redo log 花费太多时间
+
