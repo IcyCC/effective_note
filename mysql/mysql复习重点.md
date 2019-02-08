@@ -680,3 +680,54 @@ gap lock 和 行锁是分开俩步加的
 2. B 会取 (5,10) 间隙锁 加锁成功, 加 10 的行锁 失败
 
 3. A 获取 (5,10) 间隙锁失败 形成死锁 B 回滚
+
+## 日志机制
+
+### binlog  写入
+
+bin log 先写入到 bin log cache 事务提交的时候  写入到 bin log 文件中.
+
+每个线程分配一个 bin log cache 通过设置 bin_log_cache_size 用于控制这个 cache 的大小, 超过这个大小就存到磁盘
+
+![例子](../assests/13.png)
+
+write 是把 bin log 写入 page cache
+fsync 把 page cache 写入磁盘
+
+通过设置 sync_binlog 可以 控制写入的行为:
+
+1. sync_binlog=0 提交事务只 write 不 fsync
+2. sync_binlog=1 提交事务都 fsync
+3. sync_binlog=N 每次都 write n 个事务后 fsync
+
+### redolog 写入
+
+事务执行时 redo log 写入到 redo log buffer 中
+
+redo log 不需要时刻都从buffer同步到磁盘 因为事务没提交 丢了也无所谓
+
+通过配置 innodb_flush_log_at_trx_commit 可以控制写入行为:
+
+1. 0 每次提交只写buffer
+2. 1 提交时候 持久到硬盘
+3. 2 只写入到 page cache
+
+redo log 可能会在没提交的时候写入到磁盘
+
+1. 后台1s的定时刷新
+2. 达到innodb_log_buffer_size 一半的时候
+3. 并行的trx提交 顺带写入
+
+### 组提交
+
+第一个到达写入队列的trx 在写入时 会把一起到了的trx 一起写入 
+
+为了利用组提交带来的性能优化, 事务的完整提交流程如下
+
+![例子](../assests/15.png)
+
+设置参数 binlog_group_commit_sync_delay(延迟多少秒) 和 binlog_group_commit_sync_no_delay_count (延迟多少个) 关系 逻辑或
+
+
+
+
