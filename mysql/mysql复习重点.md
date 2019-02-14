@@ -704,30 +704,89 @@ fsync 把 page cache 写入磁盘
 
 事务执行时 redo log 写入到 redo log buffer 中
 
-redo log 不需要时刻都从buffer同步到磁盘 因为事务没提交 丢了也无所谓
+redo log 不需要时刻都从 buffer 同步到磁盘 因为事务没提交 丢了也无所谓
 
 通过配置 innodb_flush_log_at_trx_commit 可以控制写入行为:
 
-1. 0 每次提交只写buffer
-2. 1 提交时候 持久到硬盘
+1. 0 每次提交只写 buffer
+2. 1 提交  时候 持久到  硬盘
 3. 2 只写入到 page cache
 
 redo log 可能会在没提交的时候写入到磁盘
 
-1. 后台1s的定时刷新
-2. 达到innodb_log_buffer_size 一半的时候
-3. 并行的trx提交 顺带写入
+1. 后台 1s 的定时刷新
+2.  达到 innodb_log_buffer_size 一半的时候
+3. 并  行的 trx 提交 顺带写入
 
 ### 组提交
 
-第一个到达写入队列的trx 在写入时 会把一起到了的trx 一起写入 
+第一个到达写入队列的 trx 在写入时 会把一起到  了的 trx 一起写入
 
-为了利用组提交带来的性能优化, 事务的完整提交流程如下
+为了  利用组提交带来的性能优化,  事务的完整提交流程如下
 
 ![例子](../assests/15.png)
 
 设置参数 binlog_group_commit_sync_delay(延迟多少秒) 和 binlog_group_commit_sync_no_delay_count (延迟多少个) 关系 逻辑或
 
+## 主备一致
 
+完成流程
 
+![例子](../assests/16.png)
 
+ 使用 bin log 完成主备一致, bin log 有三种格式: row, statement, mixed,
+
+row:  推荐格式,  记录物理改变, 占内存, 略慢
+statement: 记录执行语句 有一致性的问题, 省内存(比如 limit 有可能走不同的索引树)
+mixed: 大部分都 statement 容易不一致的场景使用 row
+
+## 高可用
+
+### 主备延迟
+
+在备库执行
+
+```
+show slave status
+
+```
+
+可以通过 seconds_behind_master 查看主备延迟
+
+该参数通过 bin log 的时间戳和当前备库时间戳差得到
+
+延迟有俩个阶段:
+
+1. 主库完成消费到发送给备库 备库接受完成
+2. 备库执行完成 (主要)
+
+延迟的原因:
+
+1. 主库备库机器性能不对称
+2. 备库查询压力太大
+3. 大事务:
+   1. 一次删除过多
+   2. 大表 ddl
+
+###  主备切换
+
+#### 可靠性优先
+
+步骤:
+
+1.  判断备库 sbm 小于一个阈值
+2. 主库设置成只读状态
+3. 等到备库 sbm 为 0
+4. 关闭备库 read only  切换业务 完成
+
+存在不可用时间, 所以要等 sbm 足够小才能切换
+
+#### 可用性优先
+
+直接切换  会造成数据不一致
+
+## 备库并行复制策略
+
+1. mysql 5.5 之前无并行复制
+2. 按表分发
+3. 按行分发(要求 1.bin log row 2.必须有主键 3.不能有外键)
