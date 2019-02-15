@@ -848,3 +848,117 @@ start slave;
 GTID=server_uuid:gno
 
 ```
+
+## 读写分离
+
+### 架构
+
+1. 客户端直接连接(zookeeper)
+2. proxy 代理
+
+### 过期读避免
+
+1. 强制走主库方案
+
+对查询进行分类 把不能过期读的查询分到主库上
+
+2. sleep 方案 比如 ajax 场景先做一个前端的假的新增
+
+3. 判断主备延迟方案
+
+   1. seconds_behind_master 为 0
+   2.  位点同步法 master_log_file 和 read_mater_log_pos 为主库的位点
+      relay_log_file 和 exec_log_log_pos 表示备库执
+   3. 对比 GTID 集合
+
+4. semi-sync 半同步复制
+
+   步骤:
+
+   1. 主库执行完事务后 吧 bin log 发给  从库
+   2. 从库收到后  给主库 ack
+   3. 主库收到 ack 后认为完成
+
+   存在问题:
+
+   1.  一主多从存在过期读
+   2. 持续延迟会过度等待????
+
+5. 等主库位点
+
+   通过,
+
+   ```
+   select master_pos_wait(file, pos[, timeout]);
+   ```
+
+   在从库执行, file 查询的主库文件 pos 查询的主库位置 timeout 超时时间
+   返回到 该命令执行 到 file pos 位置 执行了多少事务
+
+   使用逻辑
+
+   1. 事务执行完成后 执行 show master status 获取 file pos
+   2. 选定一个从库查询
+   3. select master_pos_wait(file, pos,1)
+   4. 返回 >=0 在该从库执行 否则 主库执行
+
+6. GTID
+
+   ```
+   select wait_for_executed_gtid_set(gtid_set, 1);
+   ```
+
+   等待 这个库执行的事务包含 gtid_set 返回 0, 超时返回 1
+
+   流程:
+
+   1. trx 执行完了  获取 GTID 记为 gtid1
+   2.  选定一个从库执行 select wait_for_executed_gtid_set(gtid1, 1);
+   3. 如果 0 执行查询 否则 回主库
+
+## 数据库异常监测
+
+### select 1
+
+bad case:
+比如  并发数量 达到了 innodb_thread_concurrency 设置的值, 此时  正常的查询  无法执行
+
+### 查表判断
+
+在系统库(mysql)中放一个只有一条数据的表
+
+存在问题:
+bin log 磁盘满了
+更新和事务提交 commit 无法生效 但是查询正常
+
+### 更新判断
+
+```
+mysql> CREATE TABLE `health_check` (
+`id` int(11) NOT NULL,
+`t_modified` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+PRIMARY KEY (`id`)
+) ENGINE=InnoDB;
+
+/_ 检测命令 _/
+insert into mysql.health_check(id, t_modified) values (@@server_id, now()) on duplicate key update t_modified=now();
+
+```
+
+各个节点更新自己 id 的数据
+
+弊端:
+随机性 有可能监测语句在  需要切换的高负载下 恰好执行了
+
+### 内部统计
+
+通过 performance_schema 库来获取数据库系统内部的状态
+
+file_summary_by_event_name 记录各个事件的 io 情况
+
+ 通过这个命令开启 redo log 监控
+
+```
+mysql> update setup_instruments set ENABLED='YES', Timed='YES' where name like '%wait/io/file/innodb/innodb_log_file%';
+
+```
