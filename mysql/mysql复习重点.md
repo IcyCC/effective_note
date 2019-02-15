@@ -790,3 +790,61 @@ show slave status
 1. mysql 5.5 之前无并行复制
 2. 按表分发
 3. 按行分发(要求 1.bin log row 2.必须有主键 3.不能有外键)
+
+## 一主多从 
+
+### 主备  切换
+
+#### 基于位点
+
+从库执行 change master 命令
+
+```
+CHANGE MASTER TO
+MASTER_HOST=$host_name
+MASTER_PORT=$port
+MASTER_USER=$user_name
+MASTER_PASSWORD=$password
+MASTER_LOG_FILE=$master_log_name
+MASTER_LOG_POS=$master_log_pos
+```
+
+从 MASTER_LOG_FILE 的  日志文件 的 MASTER_LOG_POS 位置 进行同步
+
+取同步位点方法:
+
+> 一般没办法取到准确的位点 会稍微往前取一点
+
+1. 等待  新主库 完成日志中转完成
+2. 使用 show master status 获取 新主库 的 日志 File 和 最新的 position
+3. 取 原主库 的故障时刻 t
+4. 使用 bin log 解析工具 获取  位点(end_log_pos)
+
+```
+mysqlbinlog File --stop-datetime=T --start-datetime=T
+```
+
+错误处理:
+
+1. 跳过所有出错的事务
+
+```
+set global sql_slave_skip_counter=1;
+start slave;
+```
+
+2. 跳过指定错误
+   设置
+   slave_skip_errors 为 "1032,1062" 跳过唯一建错误 和 删除
+   找不到行
+
+#### GTID
+
+对一个事务标记一个  集群唯一的 id:
+
+事务提交的时候生成一个
+
+```
+GTID=server_uuid:gno
+
+```
