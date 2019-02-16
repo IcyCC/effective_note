@@ -962,3 +962,25 @@ file_summary_by_event_name 记录各个事件的 io 情况
 mysql> update setup_instruments set ENABLED='YES', Timed='YES' where name like '%wait/io/file/innodb/innodb_log_file%';
 
 ```
+
+## 误删数据
+
+### 误删行
+
+如果使用 delete 语句误删可以使用 flashback 恢复数据
+要保证 binlog_format=row, binlog_row_image=FULL
+
+在一个备库执行操作 完成了以后同步主库
+
+### 误删表
+
+ 取最近全量备份  和 全量备份后 除误删除语句的 binlog 使用 binlog 进行恢复
+
+### 预防
+
+#### 延迟备库
+
+```
+CHANGE MASTER TO MASTER_DELAY = N
+```
+设置N秒的延迟 
