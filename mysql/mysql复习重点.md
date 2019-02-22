@@ -983,4 +983,52 @@ mysql> update setup_instruments set ENABLED='YES', Timed='YES' where name like '
 ```
 CHANGE MASTER TO MASTER_DELAY = N
 ```
-设置N秒的延迟 
+
+设置 N 秒的延迟
+
+## 查询缓存
+
+### 查询流程
+
+1. 获取一行数据 写入 net_buffer 默认大小 16k
+2. 重复获取行 直到 net_buffer 满 调用网络接口发送
+3. 发送成功 情况 net_buffer 读下一行
+4. 如果发送函数返回 EAGAIN 或者 WASAEWOULDBLOCK 表示 socket 缓存区写满 等待
+
+**mysql 边读边发**
+
+如果客户端接受大曼 会延迟事务执行时间
+
+当 show processlist 发现状态是 Sending to client 表示服务端网络栈满了
+
+### 客户端读取
+
+- mysql_use_result 用一行读一行 处理逻辑复杂会导致事务变慢
+- mysql_store_result 会吧结果存在本地
+
+通过变大 net_buffer_size 可减少 Sending to client 状态
+
+Sending data 状态指正在执行
+Sending to client 等待客户端接受
+
+### 全表扫描的影响
+
+innodb 通过 Buffer pool 机制加速查询
+
+性能指标是 内存命中率
+
+查看方法
+
+```
+show engine innodb status
+```
+
+查看 Buffer pool hit rate 可查看内存命中率
+
+可通过 innodb_buffer_pool_size 设置大小
+
+#### 淘汰算法
+
+innodb 基于的是改进版 LRU 算法 通过对 young 和 old 区域的划分,
+新读入的数据先放入 old 头部 若存活超过(innodb_old_blokcks_time 默认 0)s 就放入 young 第一个, 优化了对低频访问 page 的提升,
+降低了因全表扫描造成的命中率下降
