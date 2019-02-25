@@ -1032,3 +1032,147 @@ show engine innodb status
 innodb 基于的是改进版 LRU 算法 通过对 young 和 old 区域的划分,
 新读入的数据先放入 old 头部 若存活超过(innodb_old_blokcks_time 默认 0)s 就放入 young 第一个, 优化了对低频访问 page 的提升,
 降低了因全表扫描造成的命中率下降
+
+## Join 算法分析
+
+t1 : a(index),b ; 100
+t2 : a(index), b; 1000
+
+### Index Neeted-loop Join (NLJ)
+
+```
+select * from t1 straight_join t2 on (t1.a=t2.a)
+```
+
+使用 t1 作为驱动表 t2 作为被驱动表
+
+执行流程:
+
+1. 从 t1 取一条数据 R
+2. 从 R 中取出 a 到 t2 中查找
+3. 从 t2 取出 跟 R 组成一行 作为结果集
+4. 重复执行 直到 t1 结束
+
+t1 做全表扫描 t2 行数使用索引  行数为 (N + N*2*log2M) -> N
+所以小表为驱动表
+
+### Simple Neeted-loop Join(SNL)
+
+> 该算法 mysql 并未使用
+
+```
+select * from t1 straight_join t2 on (t1.a=t2.b);
+
+```
+
+对 a 全表扫描后 对 b 也是全表扫把 扫 100000 行
+
+### Block Neeted-loop Join(Bnl)
+
+流程:
+
+1. t1 放入 join_buffer 中
+2. 扫描表 t2, 和 join_buffer 比较
+
+复杂度同样十万行 内存操作要快
+
+分块:
+
+当驱动表太大时 join_buffer 放不下, 会分批放:
+
+1. t1 放入 N/b 行
+2. 全表扫 t2 比较匹配结果
+3. 返回第一步
+
+行数 N \* b \* N \* M
+
+所以核心是优化 b:
+
+1. 降低驱动表大小
+2. 增大 join_buffer_size 大小
+
+## Join 优化
+
+数据表
+
+```
+create table t1(id int primary key, a int, b int, index(a));
+create table t2 like t1;
+drop procedure idata;
+delimiter ;;
+create procedure idata()
+begin
+  declare i int;
+  set i=1;
+  while(i<=1000)do
+    insert into t1 values(i, 1001-i, i);
+    set i=i+1;
+  end while;
+
+  set i=1;
+  while(i<=1000000)do
+    insert into t2 values(i, i, i);
+    set i=i+1;
+  end while;
+
+end;;
+delimiter ;
+call idata();
+
+```
+
+### Multi-Range Read (MRR)优化
+
+> 核心使用顺序读代替随机读提高性能
+
+```
+select * from t1 where a>=1 and a<=100;
+```
+
+这个语句扫到索引 查到的 id 是非顺序的, 例如:
+![例子](../assests/17.png)
+
+优化方式:
+
+1. 根据索引 a 获取到的 id, 把 id 放入 read_rnd_buffer 中,
+2. read_rnd_buffer 按递增排序
+3. 到主键索引树查记录
+
+使用配置
+
+```
+set optimizer_switch="mrr_cost_based=off"
+
+```
+
+稳定使用 MRR 优化
+
+### Batched key Access
+
+启用
+
+```
+set optimizer_switch='mrr=on,mrr_cost_based=off,batched_key_access=on';
+```
+
+从 t1 多拿几行 放入 join_buffer, 排序, 读 t2 获取顺序读取的性能提升
+
+### BNL 优化
+
+问题:
+
+1. io 压力大
+2. Buffer pool 污染
+
+优化:
+
+1. 增大 buffer_size
+2. 增加索引
+3. 使用带索引的临时表
+
+```
+create temporary table temp_t(id int primary key, a int, b int, index(b))engine=innodb;
+insert into temp_t select * from t2 where b>=1 and b<=2000;
+select * from t1 join temp_t on (t1.b=temp_t.b);
+
+```
