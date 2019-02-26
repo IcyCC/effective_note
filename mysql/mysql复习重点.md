@@ -1176,3 +1176,63 @@ insert into temp_t select * from t2 where b>=1 and b<=2000;
 select * from t1 join temp_t on (t1.b=temp_t.b);
 
 ```
+
+## 临时表
+
+1. 使用 create tmporary table 建立临时表
+2. 一个临时表只能被他当前 session 访问
+3. 临时表可以和普通表同名
+4. session 内有同名临时和普通表的时候, show create 和 增删改查操作的是临时表
+5. show tables 看不到临时表
+
+优势:
+
+1. 不同 session 临时表可以重名
+2. 不用担心数据异常, 会自动回收
+
+### 在分表系统中应用
+
+例如 查询语句为
+
+```
+select v from ht where k >= M order by t_modified desc limit 100;
+
+```
+
+且 k 不是分区字段
+
+1. 使用 proxy
+
+优点: 处理速度快
+缺点: 内存运算 cpu 压力大 对复杂操作支持比较复杂
+
+2. 把分库的数据 放到一个临时表内
+
+执行流程: 1. 在每个分表上执行
+
+    ```
+    select v from ht where k >= M order by t_modified desc limit 100;
+    ```
+
+    2. 放入临时表
+
+    3. 执行
+    ```
+    select v from ht order by t_modified desc limit 100;
+    ```
+
+### 临时表重名
+
+```
+create temporary table temp_t(id int primary key)engine=innodb;
+
+```
+
+当执行这个语句后, 会创建一个 _frm_ 文件, 前缀 #sql{进程 id}*{线程 id}*序列号 使用 select @@tmpdir 查看临时文件目录
+
+mysql 建立表后, 对表管理 会 用 table_def_key 对应.
+
+- 一个普通表的 table_def_key 由库名+表名 组成
+- 临时表在普通表基础上加了 server_id 和 线程 id
+
+遍历时优先遍历临时表
