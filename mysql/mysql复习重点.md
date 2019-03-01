@@ -63,7 +63,7 @@
 
 > 使用 show variables like 'transaction_isolation' 查看隔离级别
 
-![例子](../assests/01.png)
+![例子](../assests/mysql/01.png)
 
 - 读未提交: v1=2, v2=2, v3=2
 - 读提交: v1=1, v2=2, v3=2
@@ -199,7 +199,7 @@ ALTER TABLE xxx NOWAIT add colum
 ### 行锁
 
 这个过程中
-![例子](../assests/02.png)
+![例子](../assests/mysql/mysql/02.png)
 事务 A 执行完 commit 之前 事务 B 会被阻塞 直到 A commit
 
 > 如果事务中  需要锁多个行 把最可能造成冲突的语句往后放
@@ -212,7 +212,7 @@ ALTER TABLE xxx NOWAIT add colum
 
 ### 死锁 和 死锁检测
 
-![例子](../assests/03.png)
+![例子](../assests/mysql/03.png)
 
 A 等 B 释放 2 号行锁
 B 等 A  释放 1 号行锁
@@ -247,7 +247,7 @@ B 等 A  释放 1 号行锁
 一个事务启动的时候 记录当前的启动的没提交的事务 trx_ids 最小值作为低水位,
 当前系统事务 id 最大值+1 作为高水位
 
-![例子](../assests/04.png)
+![例子](../assests/mysql/04.png)
 
 1. 落在绿色部分 说明是已经提交的事务可见
 2. 落在红色部分 说明是将来的事务产生 不可见
@@ -316,7 +316,7 @@ mysql> insert into t(id,k) values(id1,k1),(id2,k2);
 
 ```
 
-![例子](../assests/05.png)
+![例子](../assests/mysql/mysql/05.png)
 
 1. 对于 page1(id1)的插入 page1 再 buffer pool 直接插入
 2. 对于 page2(id2)的插入 不在内存中 直接写入 change buffer
@@ -348,7 +348,7 @@ show index from t
 
 查看
 
-![例子](../assests/06.png)
+![例子](../assests/mysql/06.png)
 
 注意 cardinality 不并不准确 通过采样统计 选择 N 个数据页 求平均值,
 当更新行数 超过 1/M 会更新统计
@@ -623,11 +623,11 @@ innodb_locks_unsafe_for_binlog = 1
 
 当前表结构 和 数据
 
-![例子](../assests/07.png)
+![例子](../assests/mysql/07.png)
 
 #### 等值查询间隙锁
 
-![例子](../assests/08.png)
+![例子](../assests/mysql/08.png)
 
 1.  首先是一个 next-row lock 锁住的范围是 (5, 10]
 2. 等值查询 ID 10 不满足右侧条件 退化成 gap lock (5, 10)
@@ -636,7 +636,7 @@ innodb_locks_unsafe_for_binlog = 1
 
 #### 非唯一索引的索引的等值锁
 
-![例子](../assests/09.png)
+![例子](../assests/mysql/09.png)
 
 给 c=5 这一行加上读锁
 
@@ -650,14 +650,14 @@ innodb_locks_unsafe_for_binlog = 1
 
 #### 主键范围锁
 
-![例子](../assests/10.png)
+![例子](../assests/mysql/10.png)
 
 1. 找到一个 id=10 的行, 本该是 next-row key (5,10], 因为 10 存在等值查询 并且 id 是主键 退化成行锁
 2. 找到 15 停下来 (5, 15] 唯一索引多找一行
 
 #### 唯一索引 bug
 
-![例子](../assests/11.png)
+![例子](../assests/mysql/11.png)
 
 这个场景
 
@@ -673,7 +673,7 @@ limit 可以减小加锁的范围
 
 gap lock 和 行锁是分开俩步加的
 
-![例子](../assests/12.png)
+![例子](../assests/mysql/12.png)
 
 1. 先加上 (5, 10) 间隙锁 和 10 的行锁 和 (10, 15)  间隙
 
@@ -689,7 +689,7 @@ bin log 先写入到 bin log cache 事务提交的时候  写入到 bin log 文
 
 每个线程分配一个 bin log cache 通过设置 bin_log_cache_size 用于控制这个 cache 的大小, 超过这个大小就存到磁盘
 
-![例子](../assests/13.png)
+![例子](../assests/mysql/13.png)
 
 write 是把 bin log 写入 page cache
 fsync 把 page cache 写入磁盘
@@ -724,7 +724,7 @@ redo log 可能会在没提交的时候写入到磁盘
 
 为了  利用组提交带来的性能优化,  事务的完整提交流程如下
 
-![例子](../assests/15.png)
+![例子](../assests/mysql/15.png)
 
 设置参数 binlog_group_commit_sync_delay(延迟多少秒) 和 binlog_group_commit_sync_no_delay_count (延迟多少个) 关系 逻辑或
 
@@ -732,7 +732,7 @@ redo log 可能会在没提交的时候写入到磁盘
 
 完成流程
 
-![例子](../assests/16.png)
+![例子](../assests/mysql/16.png)
 
  使用 bin log 完成主备一致, bin log 有三种格式: row, statement, mixed,
 
@@ -1130,7 +1130,7 @@ select * from t1 where a>=1 and a<=100;
 ```
 
 这个语句扫到索引 查到的 id 是非顺序的, 例如:
-![例子](../assests/17.png)
+![例子](../assests/mysql/17.png)
 
 优化方式:
 
@@ -1236,3 +1236,349 @@ mysql 建立表后, 对表管理 会 用 table_def_key 对应.
 - 临时表在普通表基础上加了 server_id 和 线程 id
 
 遍历时优先遍历临时表
+
+### 临时表使用场景
+
+#### union
+
+union 查询结果会放在临时表
+
+#### group by
+
+```
+select id%10 as m, count(*) as c from t1 group by m;
+```
+
+explain 结果
+
+![例子](../assests/mysql/18.png)
+
+Extra 信息:
+
+1. Using index 使用覆盖索引 不需要回表
+2. Using temporay 使用临时表
+3. Using filesort 需要排序
+
+执行流程:
+
+1. 创建临时表 字段 m,c, 主键 m
+2. 扫描 t1 的索引 a, 取出叶子节点的 id 值, 计算结果 id %10, 计算为 x.
+   - 如果临时表没有主键为 x 的值 插入,
+   - 有的画把这一行的 c 加 1
+3. 遍历完成根据 m 进行排序
+
+```
+select id%10 as m, count(\*) as c from t1 group by m order by null;
+```
+
+可以免去排序
+
+通过
+
+```
+set tmp_table_size=1024;
+```
+
+设置临时表大小
+超过大小会转成硬盘内存临时表
+
+#### group by 优化
+
+##### 索引
+
+> 通过索引让扫描变得有序
+
+如果输入如下:
+![例子](../assests/mysql/19.png)
+
+当 碰到第一个 1 的时候 知道已经积累了 X 个 0, 所以第一行为(0,X)
+
+这样不需要额外的排序
+
+```
+alter table t1 add column z int generated always as(id % 100), add index(z);
+```
+
+新增一个 z 列, 在 z 列建立索引让它有序
+
+```
+select z, count(*) as c from t1 group by z;
+
+```
+
+##### 直接排序
+
+1. 初始化 sort_buffer, 放入整形字段作为 m
+2. 扫描表 t1, 把 id%10 放入
+3. 排序
+4. 得到
+   ![例子](../assests/mysql/19.png)
+
+产生结果集
+
+#### 临时表使用原则
+
+1. 一边读数据, 一边得到结果不需要临时表, 临时表用来保存中间状态
+2. join_buffer 是无序数组, sort_buffer 是有序数组, 临时表是二维表结构
+3. 执行逻辑用到二维表特性(唯一索引, groub_by 要用一个字段计数)
+
+#### 优化方法:
+
+1. 无需排序使用 group by null
+2. 让 group by 使用表的索引
+3. 适当调大 tmp_table_size 放入内存中加速
+4. 时候 SQL_BIG_RESULT 提示 mysql
+
+## Meroy vs innodb
+
+### 数据结构
+
+innodb:
+B+树
+
+memory:
+hash 表
+
+组织方式:
+
+- innodb 主键索引放的数据, 其他索引保存 id, 索引组织模式
+- memory 索引上 保存数据位置 堆组织表
+
+### 典型不同
+
+1. innodb 是有序存放, memory 是插入顺序
+2. 当数据文件存在空洞, innodb 不可以插入, memoey 可以见空就插入
+3. 数据位置发生变化 innodb 修改主键索引即可, memory 需要修改所有索引
+4. innodb 索引地位不同, memory 相同
+
+### Memory B+Tree 优化
+
+根据 memory 的特征, 进行范围查询的时候要进行全表扫描.
+
+可以在 id 列上:
+
+```sql
+alter table t1 add index a_btree_index using btree (id);
+```
+
+会单独添加一个 B+Tree 索引
+
+### 内存表的锁
+
+内存表没有行锁, 只有表锁, 所以并发性能很差
+
+### 持久化
+
+数据放在内存中, 掉电就丢
+
+在 M-S 架构下:
+
+1. 业务正常访问主库
+2. 重启, 内存表 t1 丢失,
+
+_mysql 中 为了担心主备不一致, 重启后 会清空内存表数据_
+
+不适用 Memory 的原因:
+
+1. 并发性能差
+2. 高 qps 下 innodb 有 buffer 性能不会太差
+
+内存临时表可以使用 原因是没有并发问题
+
+## 自增主键
+
+### 自增主键保存
+
+表的结构存在 .frm 文件中, 但不会保存自增建
+不同的自增保存策略
+
+1. myisam 保存在数据文件中
+
+2. 5.7 之前 id 放在内存里 打开系统的时候 会找表里最大的 id 放入内存中
+
+3. mysql 8.0 把 id 放入 redo log 里
+
+### 自增修改机制
+
+自增可以通过 auto_increment_offset 开始,以 auto_increment_incrment 作为步长
+
+> 使用双写的时候 可以让一个为奇数 一个为偶数
+
+修改时机是在准备插入的时候
+
+### 自增修改时机
+
+表结构如下
+
+```sql
+CREATE TABLE `t` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `c` int(11) DEFAULT NULL,
+  `d` int(11) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `c` (`c`)
+) ENGINE=InnoDB;
+```
+
+### 自增空洞
+
+1. 插入失败
+
+2. 事务回滚
+
+3. 批量插入 成倍申请
+
+申请自增 id 会加锁
+
+### 自增锁
+
+通过 innodb_autoinc_lock_mode 参数 设置锁的模式
+
+1. 当参数设置 0 时, 语句结束才释放锁
+2. 当参数设置为 1 是:
+
+- 普通 insert 自增锁申请后马上释放
+- insert....select 执行后释放
+
+3. 当参数设置为 3 时: 所有的动作都是申请后释放锁.
+
+## insert
+
+```sql
+CREATE TABLE `t` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `c` int(11) DEFAULT NULL,
+  `d` int(11) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `c` (`c`)
+) ENGINE=InnoDB;
+
+insert into t values(null, 1,1);
+insert into t values(null, 2,2);
+insert into t values(null, 3,3);
+insert into t values(null, 4,4);
+
+create table t2 like t
+
+```
+
+执行这句
+
+```
+insert into t2(c,d)  (select c+1, d from t force index(c) order by c desc limit 1);
+
+```
+
+加锁 t 的 c 索引的 (3,4], (4, super] 和 主键 id=4
+
+扫描一行
+
+```
+insert into t(c,d)  (select c+1, d from t force index(c) order by c desc limit 1);
+
+```
+
+> 区别是从自己读往自己插
+
+流程:
+
+1. 创建临时表
+2. 根据 c 扫描 t 放入临时表
+3. limit 1 返回结果
+
+这个语句会导致, t 所有间隙加锁, 且全表扫描
+
+优化
+
+```sql
+create temporary table temp_t(c int,d int) engine=memory;
+insert into temp_t  (select c+1, d from t force index(c) order by c desc limit 1);
+insert into t select * from temp_t;
+drop table temp_t;
+```
+
+先插入到临时表 然后从临时表读数据
+
+### 唯一索引冲突
+
+唯一索引冲突时会给涉及到的 next-row key 加上锁
+
+```
+insert into t values(11,10,10) on duplicate key update d=100;
+```
+
+上述语句的影响行数为 2
+
+## 复制 mysql 表
+
+1. mysqldump 通过客户端执行 sql 语句
+2. 把数据保存到服务器的一个 csv 文件中
+
+```
+select * from db1.t where a>900 into outfile '/server_tmp/t.csv';
+
+```
+
+在服务端执行
+
+```
+load data infile '/server_tmp/t.csv' into table db2.t;
+```
+
+这个执行的时候 会把文件内容写入 bin log 里
+
+## 用户权限
+
+```
+create user 'ua'@'%' identified by 'pa';
+```
+
+使用该命令可以创建一个用户 ua 密码 pa
+
+> mysql 不同 ip 的同名用户是一个不同用户
+
+1. 磁盘上 mysql.users 插入一行, 权限字段都为 N
+2. 内存中往 acl_users 插入 acl_user 对象, access 全部为 0
+
+### 全局权限
+
+```
+grant all privileges on *.* to 'ua'@'%' with grant option;
+```
+
+使用该语句付给 user 最高权限, 操作:
+
+1. 修改 mysql.users 权限
+2. 修改 acl_users 权限设置
+
+实际:
+
+1. grant 修改全局权限 更新了磁盘和内存, 新的连接会采用这个权限
+2. 一个已经存在的连接 不受到影响
+
+使用
+
+```
+revoke all privileges on *.* from 'ua'@'%';
+
+```
+
+可以回收权限
+
+### db 库表权限
+
+```sql
+grant all privileges on db1.* to 'ua'@'%' with grant option;
+
+```
+
+可以 给 ua 付给 db1 的所有权限, 动作:
+
+1. 磁盘 mysql.db 中插入一条记录
+2. 内存里 acl_dbs 中插入一条记录
+
+### flush privileges
+
+一般情况不使用
+
+有时候会因为 内存的权限信息和硬盘的内存信息不同步
