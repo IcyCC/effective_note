@@ -21,4 +21,4 @@
 
 ## Mysql
 
-- [mysql 复习重点](https://github.com/IcyCC/effective_note/blob/master/mysql/mysql%E5%A4%8D%E4%B9%A0%E9%87%8D%E7%82%B9.md) 对极客时间 mysql 内容的复习总结
+- [mysql 复习重点](https://github.com/IcyCC/effective_note/blob/master/mysql/mysql%E5%A4%8D%E4%B9%A0%E9%87%8D%E7%82%B9.md) 对极客时间 mysql 内容的复习总结, 对 mysql 的日志, 锁, 缓存 机制有个基本概念
