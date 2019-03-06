@@ -406,3 +406,25 @@ Bufferr.Bytes 和 Buffer.Next 可以拿到 Buffer 维护的数组的切片, 修�
 - io.WriteTo 写入到一个 Writer 接口中
 
   ![例子](../assests/golang/05.png)
+
+## bufio
+
+bufio.Reader
+bufio.Scanner
+bufio.Writer 和 ReaderWriter
+
+bufio.Reader 类型
+
+```
+{
+    buf:[]byte 字节切片
+    rd: io.Reader 底层  读取器
+    r: int 代表对缓存区下个读取的位置
+    w: int 代表对缓存区下个写入的位置
+    err: error
+    lastByte: 记录最后一个读取的字节
+    lastRuneSize: 最后一个unicode所占用字符数
+}
+```
+
+
