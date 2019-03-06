@@ -339,3 +339,70 @@ fmt.Printf("The reading index in reader: %d (returned by Seek)\n", readingIndex)
 fmt.Printf("The reading index in reader: %d (computed by me)\n", expectedIndex)
 
 ```
+
+## bytes
+
+### Buffer
+
+可读可写的缓存
+
+len 是未读部分的长度
+cap 返回的已读部分的长度
+
+### Buffer 的已读计数作用?
+
+1. 读内容时, 根据已读部分找到未读部分开始读
+2. 写内容需要扩容时, 根据已读计数的情况扩容 (扩容把已读计数之后的部分放在新空间的头部)
+3. 截断内容是 根据已读计数截断
+4. 重置时 把已读计数置为 0
+5. 导出内容 会导出未读部分
+6. 获取长度 根据已读计数和内容长度返回未读长度
+
+### Buffer 的扩容策略?
+
+1. 如果内容容器还有空间 直接扩容
+2. 不满足的情况下:
+   - 覆盖已读部分能否放下?
+   - 开新空间
+
+### Buffer 内容泄漏?
+
+Bufferr.Bytes 和 Buffer.Next 可以拿到 Buffer 维护的数组的切片, 修改时会影响到底层的内容, 导致 Buffer 异常
+
+**建议传出前做深拷贝**
+
+## IO
+
+### io 包, io.Reader 的扩展接口和实现类型有哪些? 他们有啥作用?
+
+1. io.ReadWriter: 实现了 io.Reader 和 io.Writer 用于读写
+2. io.ReadCloser: io.Reader io.Close 的组合 提供关闭读写通道的功能
+3. io.ReadWriteCloser: io.Reader io.Writer 和 io.Close 的组合
+4. io.ReadSeeker: 拥有 一个找读写位置的基本方法 seek
+5. io.ReadWriteSeeker
+
+实现:
+
+1. io.LimitedReader 此类型包装 io.Reader 的值, 限制 Read 返回的字节数
+2. io.SectionReader 会包括 io.ReaderAt 的值 提供任意读取的功能
+3. io.teeReader 会 吧 r 的数据通过 p 写入到 w
+4. io.multiReader 链接多个 reader 顺序读
+5. io.pipe 内存管道
+6. io.PipeReader
+
+## io 包接口有哪些? 他们间的关系?
+
+核心接口:
+
+- io.Reader
+- io.Writer
+- io.Closer
+
+扩展接口:
+
+- io.ByteReader io.RuneReader 读一个字符 和 读一个 unicode 字符
+- io.ByteScanner io.RuneScanner 接口 提供前读 和 回退
+- io.ReaderAt 无副作用的只读接口
+- io.WriteTo 写入到一个 Writer 接口中
+
+  ![例子](../assests/golang/05.png)
