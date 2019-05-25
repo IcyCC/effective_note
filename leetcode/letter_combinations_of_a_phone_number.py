@@ -28,5 +28,5 @@ class Solution:
                     slove(str(tmp_res), flag + 1, a)
             return
         for a in  lookup[digits[0]]:
-            slove(list(), 0, a)
+            slove('', 0, a)
         return res
