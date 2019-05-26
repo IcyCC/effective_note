@@ -9,7 +9,7 @@
 
 // malloc-based allocator
 
-namespace myallo {
+namespace alloc {
     template<int inst>
     class __malloc_alloc_template {
     private:

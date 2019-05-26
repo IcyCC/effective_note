@@ -3,4 +3,4 @@ project(stl)
 
 set(CMAKE_CXX_STANDARD 14)
 
-add_executable(stl src/SGI_alloc.hpp)
+add_executable(stl src/SGI_alloc.hpp src/stl_iterator.hpp)
