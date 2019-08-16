@@ -23,9 +23,3 @@ class Solution:
                 if slow == start:
                     break
             start = start + 1
-                
-                
-                
-        
-            
-        
