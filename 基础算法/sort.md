@@ -39,7 +39,7 @@ class InsertionSort:
 
 # 归并
 
-```
+```python
 class MergeSort:
     def mergeSort(self, A, n):
         # write code here
