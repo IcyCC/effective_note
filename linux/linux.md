@@ -94,7 +94,7 @@ SS: 栈寄存器
 .bss 未初始化
 .symtable 符号表
 .strable 字符串表
-.rel.xxx 重定位
+.rel.xxx 重定位 不再本.o 的名字 放入这里
 
 - 可执行文件
 
@@ -105,4 +105,82 @@ SS: 栈寄存器
 > -L 链接自己的 -l 链接系统
 
 .plt 链接过程表
-.got 全局offset表
+.got 全局 offset 表
+
+工作流程:
+
+> 调用 create_precess
+
+1. PLT[X] 放入定位代码
+2. 找到 GOT 里的地址
+
+## linux 进程结构
+
+![例子](../assests/linux/07.png)
+
+pid1: 用户的进程
+pid2: 内核态的进程
+
+## linux task_structure
+
+![例子](../assests/linux/08.png)
+
+### 状态
+
+![例子](../assests/linux/09.png)
+
+- TASK_INTERRUPTIBLE 可打断休息
+- TASK_UNINTERRUPTIBLE 不可打断 忽略 kill
+- TASK_KILLABLE 不可打断 不忽略 kill
+
+## 调度
+
+### 调度方式
+
+```
+#define SCHED_NORMAL		0
+#define SCHED_FIFO		1
+#define SCHED_RR		2
+#define SCHED_BATCH		3
+#define SCHED_IDLE		5
+#define SCHED_DEADLINE		6
+```
+
+进程分成实时进程 和 普通进程
+
+实时进程有如下:
+
+- SCHED_FIFO 相同优先级排队 高优先级优先
+- SCHED_PR 相同时间片 高优先级优先
+- SCHED_DEADLINE 最近 ddl
+
+普通策略:
+
+- SCHED_NORMAL 普通进程
+- SCHED_BATCH 后台进程
+- SCHED_IDLE 只有空闲的搞
+
+CFS: 公平调度算法
+
+1. 记录进程运行时间 vruntime = vruntime + 实际运行时间 \* NICE / weight
+
+2. 使用红黑树, 找出 vruntime 最小的
+
+![例子](../assests/linux/10.png)
+
+# 内存管理
+
+## 分段
+
+![例子](../assests/linux/11.png)
+
+1. 请求结构: 
+
+段选择子 + 和段内偏移
+
+2. 段选择子包括: 段号 + 特权等标志
+
+3. 通过段奥
+
+
+
