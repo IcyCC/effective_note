@@ -77,6 +77,25 @@ newRTTD = (1-b) * RTTD + b * (RTT(s) - newRTT)
 ![例子](../assests/networking/02.png)
 
 
+# MTU 和 MSS
+
+## MTU
+
+查看
+```
+netstat -i
+```
+
+链路层最大
+
+IP 数据包会分段
+
+通过 Fragement offset 来偏移
+
+## MSS
+
+MSS TCP最大传输 , 可以通过网卡分片
+
 
 
 
