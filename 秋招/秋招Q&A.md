@@ -1,7 +1,7 @@
 <!--
  * @Author: your name
  * @Date: 2019-11-03 10:08:41
- * @LastEditTime: 2019-11-03 11:14:11
+ * @LastEditTime: 2019-11-03 11:14:35
  * @LastEditors: Please set LastEditors
  * @Description: In User Settings Edit
  * @FilePath: /code_note/秋招/秋招Q&A.md
@@ -115,6 +115,5 @@ mysql 主要理解 锁 , 索引, 日志, 缓存的机制的设计和使用
 redis 看源码就行, 代码质量高可读性好, 理解常见数据结构和reactor 并发模型
 
 参考资料:
-
 [1]: https://book.douban.com/subject/24708143/ "MySQL技术内幕"   
 [2]: https://time.geekbang.org/column/intro/139 "极客时间 MySQL实战45讲"  
