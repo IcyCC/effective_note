@@ -1,7 +1,7 @@
 <!--
  * @Author: your name
  * @Date: 2019-11-03 10:08:41
- * @LastEditTime: 2019-11-03 11:14:35
+ * @LastEditTime: 2019-11-03 11:18:07
  * @LastEditors: Please set LastEditors
  * @Description: In User Settings Edit
  * @FilePath: /code_note/秋招/秋招Q&A.md
@@ -77,9 +77,10 @@ A:
 
 网络这里核心要关注协议 和 流程,  协议部分就是 这个协议提供了什么功能, 比如http协议来说, http协议提供了什么功能, 传参数怎么传, 保存登陆状态怎么搞.... 流程就是一些常见的功能的实习, 比如 网页请求, 数据包路由等流程, 用到多个协议分层负责不同的步骤. 
 
-这里给大家推荐的资料:
+这里给大家推荐的资料:  
 [1]: https://developer.mozilla.org/zh-CN/docs/Web/HTTP  "http 的mdn文档"  
 [2]: https://www.bilibili.com/video/av34135819 "湖大教书匠的计算机网络课程"  
+[3]: https://item.jd.com/11163782.html "Linux多线程服务端编程 使用muduo C++网络库"  
 
 * 编程语言
 
@@ -90,11 +91,11 @@ A:
 3. 编程语言理论* 如果让你实现一个 dsl 你会根据业务涉及哪些语法, 怎么理解用的编程语言的异常处理, 类型等机制
 
 
-这里的参考资料:
+这里的参考资料:  
 [1]: https://www.liaoxuefeng.com/wiki/1016959663602400  "廖雪峰的 Python 教程"  
 [2]: https://zh.cppreference.com/w/cpp "Cpp renfence"  
 [3]: https://www.ituring.com.cn/book/1564 "流畅的 Python"  
-[4]: https://book.douban.com/subject/3117898 "Python 源码剖析"  
+[4]: https://book.douban.com/subject/3117898 "Python 源码剖析"   
 
 
 * 操作系统
@@ -107,6 +108,11 @@ A:
     * 进程间通信
     等内容就可以, 这里要注意的是和前面学的 含有虚拟机语言的设计的思想对应上
 
+这里的参考资料:  
+[1]: https://book.douban.com/subject/1390650/ "现代操作系统"  
+[2]: https://book.douban.com/subject/3652388/ "程序员的自我修养"  
+
+
 
 * 数据库
 
@@ -114,6 +120,6 @@ mysql 主要理解 锁 , 索引, 日志, 缓存的机制的设计和使用
 
 redis 看源码就行, 代码质量高可读性好, 理解常见数据结构和reactor 并发模型
 
-参考资料:
+参考资料:  
 [1]: https://book.douban.com/subject/24708143/ "MySQL技术内幕"   
-[2]: https://time.geekbang.org/column/intro/139 "极客时间 MySQL实战45讲"  
+[2]: https://time.geekbang.org/column/intro/139 "极客时间 MySQL实战45讲"   
