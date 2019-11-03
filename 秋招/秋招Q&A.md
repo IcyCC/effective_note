@@ -1,16 +1,27 @@
 <!--
  * @Author: your name
  * @Date: 2019-11-03 10:08:41
- * @LastEditTime: 2019-11-03 11:18:07
+ * @LastEditTime: 2019-11-03 14:53:20
  * @LastEditors: Please set LastEditors
  * @Description: In User Settings Edit
  * @FilePath: /code_note/秋招/秋招Q&A.md
  -->
 # 基本情况
 
-我是一名就读于北京林业大学大四的学生, Python/Cpp 服务器端开发者, 略懂些客户端, 在秋招里, 凭借运气和一些准备, 拿到了腾讯微信一个评级不错的offer.
+我是北京林业大学大四的学生, 同时也是一个Python/Cpp 服务器端开发者, 略懂些客户端, 在秋招里, 凭借运气和一些准备, 拿到了腾讯微信一个评级不错的offer.
 
 # Q&A
+
+## 看成绩or 学历吗? 你在学校成绩怎么样?
+
+比较尴尬, 我不是一个学霸, 我上的不是一个特别好的大学, 成绩在学校里也是下游, 个人感觉面试官也不是很在意这个, 重要的还是你对你所做技术的热情要更重要一些.
+
+
+## 普通本科生的收入范围?
+
+sp
+
+
 
 ##  Q: 微信招聘 是怎么一个流程?
 
@@ -57,7 +68,7 @@ A:
 
 * 编程语言方面, 我强调了我很擅长Python这一有vm的语言和c++这一没vm的语言, 并且以我的项目经历作为作证, 把 C++/Python 混合开发 作为了我一个亮点
 
-* 网络方面, 我强调了我对http协议的理解, 和用网络库和web项目加以作证
+* 网络方面, 我强调了我对http TCP ssl协议 的理解, 和用网络库和web项目加以作证
 
 * 操作系统, 主要是并发编程这里, 我把协程作为了一个亮点, 用在知乎的文章加以作证
 
@@ -122,4 +133,5 @@ redis 看源码就行, 代码质量高可读性好, 理解常见数据结构和r
 
 参考资料:  
 [1]: https://book.douban.com/subject/24708143/ "MySQL技术内幕"   
-[2]: https://time.geekbang.org/column/intro/139 "极客时间 MySQL实战45讲"   
+[2]: https://time.geekbang.org/column/intro/139 "极客时间 MySQL实战45讲" 
+
