@@ -180,6 +180,7 @@ struct input_iterator_helper
 
 感觉上就是给了 help 的 iterator_category 类型做了个确定. 我们用的时候只要继承特定的 help 就可以确定迭代器的类型和要实现的内容了.
 
+> 完了 这里感觉没太看懂, 有老哥看懂了加一下哦....
 
 
 ### 基类链
